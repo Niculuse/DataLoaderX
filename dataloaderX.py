@@ -20,6 +20,8 @@ class DatasetX(Dataset):
         self.dataset = dataset
         self.buffer_meta = buffer_meta
         self.buffer_num = buffer_num
+        # no need enable pin_memory for inner DataLoader
+        kwargs["pin_memory"] = False
         self.dataloader = iter(DataLoader(dataset, **kwargs))
         self.buffer_index = -1
         self.tensor_buffers = self.__init_tensor_buffers__()
@@ -94,6 +96,7 @@ class DataLoaderX(DataLoader):
 .
     """
     def __init__(self, dataset: Dataset, buffer_meta: Optional[Dict] = None, prefetch_num: Optional[int] = 1, **kwargs):
+        pin_memory = True if "pin_memory" not in kwargs else kwargs["pin_memory"]
         datasetX = DatasetX(dataset, buffer_meta, buffer_num=prefetch_num+1, **kwargs)
         super().__init__(datasetX, batch_size=1, shuffle=False, num_workers=1, collate_fn=datasetX.collate_fn,
-                         pin_memory=True, prefetch_factor=prefetch_num, persistent_workers=True)
+                         pin_memory=pin_memory, prefetch_factor=prefetch_num, persistent_workers=True)
