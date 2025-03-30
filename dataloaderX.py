@@ -24,7 +24,7 @@ class DatasetX(Dataset):
         kwargs["pin_memory"] = False
         self.dataloader = iter(DataLoader(dataset, **kwargs))
         self.buffer_index = -1
-        self.tensor_buffers = self.__init_tensor_buffers__()
+        self.tensor_buffers = self.init_tensor_buffers()
 
     def __len__(self):
         return len(self.dataset)
@@ -32,13 +32,20 @@ class DatasetX(Dataset):
     def __getitem__(self, index=None):
         return next(self.dataloader)
 
-    def __init_tensor_buffers__(self):
+    def check_buffer_meta(self):
+        for dtype, size in self.buffer_meta.items():
+            if not (isinstance(dtype, torch.dtype) and isinstance(size, int)):
+                raise TypeError(f"buffer_meta should be a dict with one of {torch.dtype} as the key and an int variable as the value, "
+                                f"but got {type(dtype)}:{type(size)} as the key:value pair!")
+
+    def init_tensor_buffers(self):
         if not self.buffer_meta:
             self.buffer_meta = {
                                 torch.uint8: 1024**3, # for image tensors
                                 torch.int64: 1024**2, # for label tensors
                                 torch.float32: 1024**3, # for image tensors
                                 }
+        self.check_buffer_meta()
         tensor_buffers = [{dtype:torch.empty(size, dtype=dtype).share_memory_() for dtype, size in self.buffer_meta.items()} for _ in range(self.buffer_num)]
         return tensor_buffers
 
